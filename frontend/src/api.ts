@@ -108,3 +108,61 @@ export interface ReviewSummary {
 
 const inr = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 export const formatINR = (n: number) => inr.format(n);
+
+// ---------------------------------------------------------------- carts and orders (Phase 3)
+export interface CartSummary { id: number; name: string; is_active: boolean; item_count: number; subtotal: number }
+
+export interface CartLine { id: number; product: ProductCard; quantity: number; line_total: number; problem: string | null }
+
+export interface CartDetail extends CartSummary {
+  lines: CartLine[];
+  shipping_fee: number;
+  total: number;
+  can_checkout: boolean;
+}
+
+export interface Address {
+  id: number;
+  full_name: string;
+  phone: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  is_default: boolean;
+}
+
+export interface Checkout {
+  order_id: number;
+  razorpay_order_id: string;
+  amount: number;
+  currency: string;
+  key_id: string;
+  name: string;
+  email: string;
+  contact: string;
+}
+
+export type ItemStatus = "placed" | "packed" | "shipped" | "delivered" | "cancelled";
+
+export interface Order {
+  id: number;
+  cart_name: string;
+  status: "pending_payment" | "paid" | "cancelled";
+  progress: ItemStatus | "pending_payment";
+  subtotal: number;
+  shipping_fee: number;
+  total: number;
+  ship_name: string;
+  ship_phone: string;
+  ship_address: string;
+  created_at: string;
+  paid_at: string | null;
+  items: {
+    id: number; product_id: number | null; name: string; unit_price: number; quantity: number;
+    status: ItemStatus; status_updated_at: string; seller_name: string;
+  }[];
+}
+
+export const json = (body: unknown, method = "POST"): RequestInit => ({ method, body: JSON.stringify(body) });

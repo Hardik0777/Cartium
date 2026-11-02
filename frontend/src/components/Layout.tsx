@@ -1,8 +1,11 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
+import { useCarts } from "../cart";
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { carts } = useCarts();
+  const itemsInCarts = carts.reduce((n, c) => n + c.item_count, 0);
   const navigate = useNavigate();
 
   return (
@@ -10,7 +13,15 @@ export default function Layout() {
       <header className="topbar">
         <Link to="/" className="wordmark">Cartium</Link>
         <nav>
-          {user?.role === "buyer" && <NavLink to="/wishlist">Wishlist</NavLink>}
+          {user?.role === "buyer" && (
+            <>
+              <NavLink to="/orders">Orders</NavLink>
+              <NavLink to="/wishlist">Wishlist</NavLink>
+              <NavLink to="/cart" className="cart-link">
+                Carts{itemsInCarts > 0 && <span className="badge" aria-label={`${itemsInCarts} items`}>{itemsInCarts}</span>}
+              </NavLink>
+            </>
+          )}
           {user?.role === "seller" && <NavLink to="/seller">Seller hub</NavLink>}
           {user?.role === "admin" && <NavLink to="/admin">Admin</NavLink>}
           {user ? (

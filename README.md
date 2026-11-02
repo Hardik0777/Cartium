@@ -10,7 +10,7 @@ An AI-powered marketplace where **buyers** shop with multiple named carts, **sel
 |---|---|
 | 1. Accounts: signup, login, JWT, buyer/seller/admin roles, seller approval state | ✅ Done |
 | 2. Catalog: categories, search, filters, product pages, wishlist, recently viewed, reviews | ✅ Done |
-| 3. Multiple carts, Razorpay checkout, order tracking | ⏳ |
+| 3. Multiple named carts, saved addresses, Razorpay checkout, order tracking, reorder | ✅ Done |
 | 4. Seller dashboard | ⏳ |
 | 5. Admin dashboard | ⏳ |
 | 6. Google sign-in | ⏳ |
@@ -31,7 +31,7 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Edit `backend\.env`: put your MySQL root password in `DATABASE_URL` and set `JWT_SECRET` (generate one with `py -3.12 -c "import secrets; print(secrets.token_hex(32))"`). Then:
+Edit `backend\.env`: put your MySQL root password in `DATABASE_URL` (if the password contains `@`, write it as `%40`), add your Razorpay **test** keys, and set `JWT_SECRET` (generate one with `py -3.12 -c "import secrets; print(secrets.token_hex(32))"`). Then:
 
 ```bash
 python -m app.seed
@@ -84,6 +84,18 @@ The seed also adds 7 categories, 30 products and a few reviews. Brand names in t
 - **Filters live in the URL,** so a filtered, sorted page can be bookmarked or shared.
 - **Recently viewed** keeps the latest 20 products per user, with no duplicates.
 - **Review privacy:** reviews show the reviewer's first name only.
+
+## Checkout and payments
+
+Razorpay test mode works end to end locally. Pay with Razorpay's test cards or test UPI ID (`success@razorpay`); no real money moves.
+
+1. **Server-side totals.** The browser only sends which cart and which address. Prices, delivery fee and total are calculated from the database, and the amount sent to Razorpay is in paise.
+2. **Stock is reserved when checkout starts**, under `SELECT ... FOR UPDATE` row locks taken in product-id order (so two checkouts can't deadlock). A test races two buyers for the last unit on real MySQL; exactly one wins. That test caught a real bug: SQLAlchemy was returning cached product rows instead of the values read under the lock (fixed with `populate_existing`).
+3. **Payment is confirmed by signature.** Razorpay signs `order_id|payment_id` with the secret key; the server recomputes it with HMAC-SHA256 and compares in constant time. A forged signature is rejected.
+4. **Reservations expire.** If the buyer closes the payment window, stock is returned immediately; unpaid checkouts are released after 15 minutes (cleaned up lazily, so no background job is needed).
+5. **Orders are snapshots.** Item names, prices paid and the delivery address are copied onto the order, so later edits to a listing or address never change past orders.
+6. **Per-item tracking.** Each seller ships their own items, so status (Placed, Packed, Shipped, Delivered) is tracked per item; the order shows the progress of its slowest item.
+7. **Verifying twice is safe.** A double click or retry won't mark an order paid twice.
 
 ## Tests
 

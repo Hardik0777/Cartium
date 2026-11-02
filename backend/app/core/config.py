@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24
     cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Razorpay (use TEST keys locally: they start with rzp_test_)
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_api_url: str = "https://api.razorpay.com/v1"  # overridable so tests can use a fake server
+    payment_window_minutes: int = 15     # stock is held this long while the buyer pays
+    free_shipping_over: int = 499        # rupees
+    shipping_fee: int = 40               # rupees
+
     @field_validator("database_url")
     @classmethod
     def use_pymysql_driver(cls, url: str) -> str:

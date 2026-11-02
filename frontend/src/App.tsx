@@ -2,6 +2,10 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Account from "./pages/Account";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import OrderDetail from "./pages/OrderDetail";
+import Orders from "./pages/Orders";
 import AdminDashboard from "./pages/AdminDashboard";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -18,6 +22,10 @@ export default function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/products/:id" element={<ProductPage />} />
+        <Route path="/cart" element={<ProtectedRoute roles={["buyer"]}><Cart /></ProtectedRoute>} />
+        <Route path="/checkout/:cartId" element={<ProtectedRoute roles={["buyer"]}><Checkout /></ProtectedRoute>} />
+        <Route path="/orders" element={<ProtectedRoute roles={["buyer"]}><Orders /></ProtectedRoute>} />
+        <Route path="/orders/:id" element={<ProtectedRoute roles={["buyer"]}><OrderDetail /></ProtectedRoute>} />
         <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="/seller" element={<ProtectedRoute roles={["seller"]}><SellerDashboard /></ProtectedRoute>} />

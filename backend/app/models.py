@@ -134,3 +134,107 @@ class Review(Base):
     updated_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow, onupdate=utcnow)
 
     user: Mapped[User] = relationship(lazy="joined")
+
+
+# ---------------------------------------------------------------- carts and orders (Phase 3)
+class Cart(Base):
+    __tablename__ = "carts"
+    __table_args__ = (UniqueConstraint("user_id", "name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(40))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)  # the cart "Add to cart" uses
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
+
+    items: Mapped[list["CartItem"]] = relationship(
+        back_populates="cart", cascade="all, delete-orphan", order_by="CartItem.id", lazy="selectin"
+    )
+
+
+class CartItem(Base):
+    __tablename__ = "cart_items"
+    __table_args__ = (UniqueConstraint("cart_id", "product_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cart_id: Mapped[int] = mapped_column(ForeignKey("carts.id", ondelete="CASCADE"), index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"))
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+
+    cart: Mapped[Cart] = relationship(back_populates="items")
+    product: Mapped[Product] = relationship(lazy="joined")
+
+
+class Address(Base):
+    __tablename__ = "addresses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    full_name: Mapped[str] = mapped_column(String(100))
+    phone: Mapped[str] = mapped_column(String(15))
+    line1: Mapped[str] = mapped_column(String(200))
+    line2: Mapped[str] = mapped_column(String(200), default="")
+    city: Mapped[str] = mapped_column(String(80))
+    state: Mapped[str] = mapped_column(String(80))
+    pincode: Mapped[str] = mapped_column(String(6))
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class OrderStatus(str, enum.Enum):
+    pending_payment = "pending_payment"  # stock reserved, waiting for Razorpay
+    paid = "paid"
+    cancelled = "cancelled"              # buyer closed checkout, or the reservation expired
+
+
+class ItemStatus(str, enum.Enum):
+    placed = "placed"
+    packed = "packed"
+    shipped = "shipped"
+    delivered = "delivered"
+    cancelled = "cancelled"
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    cart_name: Mapped[str] = mapped_column(String(40))
+    status: Mapped[OrderStatus] = mapped_column(
+        Enum(OrderStatus, native_enum=False, length=20), default=OrderStatus.pending_payment, index=True
+    )
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    shipping_fee: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    total: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    # The address is copied onto the order, so editing or deleting a saved address
+    # never changes where a past order was shipped.
+    ship_name: Mapped[str] = mapped_column(String(100))
+    ship_phone: Mapped[str] = mapped_column(String(15))
+    ship_address: Mapped[str] = mapped_column(Text)
+    razorpay_order_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    razorpay_payment_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(Timestamp)
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow, index=True)
+    paid_at: Mapped[datetime | None] = mapped_column(Timestamp, nullable=True)
+
+    items: Mapped[list["OrderItem"]] = relationship(
+        back_populates="order", cascade="all, delete-orphan", order_by="OrderItem.id", lazy="selectin"
+    )
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
+    seller_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # Snapshot of what was bought, at the price paid, even if the listing changes later.
+    name: Mapped[str] = mapped_column(String(200))
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    quantity: Mapped[int] = mapped_column(Integer)
+    # Each seller ships their own items, so status is tracked per item (sellers update it in Phase 4).
+    status: Mapped[ItemStatus] = mapped_column(Enum(ItemStatus, native_enum=False, length=20), default=ItemStatus.placed)
+    status_updated_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
+
+    order: Mapped[Order] = relationship(back_populates="items")

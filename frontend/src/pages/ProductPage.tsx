@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, formatINR, type ProductDetail, type ReviewSummary } from "../api";
 import { useAuth } from "../auth";
+import AddToCart from "../components/AddToCart";
 import ProductImage from "../components/ProductImage";
 import Stars from "../components/Stars";
 
@@ -62,6 +63,7 @@ export default function ProductPage() {
             {product.stock_label === "out_of_stock" ? "Out of stock" :
              product.stock_label === "low" ? `Only ${product.stock} left` : "In stock"}
           </p>
+          <AddToCart product={product} />
           <div className="actions">
             <button className={product.in_wishlist ? "btn btn-quiet saved" : "btn btn-quiet"} onClick={toggleWishlist} aria-pressed={product.in_wishlist}>
               {product.in_wishlist ? "♥ Saved to wishlist" : "♡ Save to wishlist"}
