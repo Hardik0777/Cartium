@@ -503,6 +503,18 @@ a:hover { color: var(--teal-deep); }
 .help-item p { margin: 0.4rem 0 0; }
 .help .link-button { justify-self: start; }
 
+/* ---------------- Google sign-in (Phase 6) */
+.google-block { display: grid; gap: 0.75rem; margin-bottom: 1.25rem; }
+.google-block.hidden { position: absolute; visibility: hidden; height: 0; overflow: hidden; margin: 0; }
+.google-btn { min-height: 44px; width: 100%; }
+.divider { display: flex; align-items: center; gap: 0.75rem; color: var(--ink-soft); font-size: 0.85rem; }
+.divider::before, .divider::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+.google-role { display: grid; gap: 0.75rem; margin-bottom: 1.5rem; padding: 1.25rem; border: 1.5px solid var(--teal); border-radius: var(--r-panel); background: #f3f8f9; }
+.google-role p { margin: 0; }
+.google-role .role-option { font: inherit; text-align: left; background: #fff; cursor: pointer; }
+.google-role .role-option:hover { border-color: var(--teal); }
+.google-role .link-button { justify-self: start; }
+
 @media (max-width: 900px) {
   .cart-body { grid-template-columns: minmax(0, 1fr); }
   .summary { position: static; }
@@ -533,3 +545,5 @@ a:hover { color: var(--teal-deep); }
   .topbar nav { flex-wrap: wrap; row-gap: 0.4rem; }
 }
 .checkout-main > .link-button { justify-self: start; }
+/* While a new Google user picks Shop or Sell, hide the email form so there's one clear choice. */
+.auth-inner:has(.google-role) > .form { display: none; }

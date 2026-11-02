@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import type { Role } from "../api";
 import { homeFor, useAuth } from "../auth";
 import AuthShell from "../components/AuthShell";
+import GoogleSignIn from "../components/GoogleSignIn";
 
 const ROLES: { value: Role; title: string; text: string }[] = [
   { value: "buyer", title: "Shop", text: "Browse, build carts and order" },
@@ -32,6 +33,7 @@ export default function Signup() {
 
   return (
     <AuthShell title="Create your account">
+      <GoogleSignIn />
       <form onSubmit={submit} className="form">
         <fieldset className="role-picker">
           <legend>I want to</legend>

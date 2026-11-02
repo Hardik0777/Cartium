@@ -13,7 +13,7 @@ An AI-powered marketplace where **buyers** shop with multiple named carts, **sel
 | 3. Multiple named carts, saved addresses, Razorpay checkout, order tracking, reorder | ✅ Done |
 | 4. Seller hub: listings with photo upload, stock alerts, order shipping, review replies | ✅ Done |
 | 5. Admin: approvals, moderation, bans, refunds via Razorpay, complaints, fraud flags, audit log | ✅ Done |
-| 6. Google sign-in | ⏳ |
+| 6. Sign in with Google: verified ID tokens, role choice for new users, account linking | ✅ Done |
 | 7. AI shopping assistant (RAG) | ⏳ |
 | 8. Deployment and docs | ⏳ |
 
@@ -116,6 +116,16 @@ Uploaded photos are stored in `backend/uploads/`. That's fine locally; on hosts 
 - **Fraud flags:** explainable rules (orders over ₹25,000, five or more unpaid checkouts in 24 hours, a seller cancelling three or more paid items in a week). They point an admin at something; they never block anyone automatically.
 - **Analytics:** sales, orders, buyers, sellers, sign-ups, and revenue for the last 14 days, counted in India time.
 - **Audit log:** every admin decision is stored with who made it, when, and the note.
+
+## Sign in with Google
+
+1. The frontend shows Google's own button (Google Identity Services). Google returns a signed **ID token** to the browser.
+2. The backend verifies it before trusting anything in it: the **signature** against Google's published keys (cached for an hour), the **audience** (issued for this app's client ID, so a token meant for another site is refused), the **issuer**, the **expiry**, and that the **email is verified**.
+3. Accounts are matched on Google's permanent user ID (`sub`), not the email, so changing your Gmail address doesn't create a second account.
+4. **New users** choose Shop or Sell first; admin can't be chosen. **Existing users** with the same verified email get Google linked to their account and keep their role. **Banned users** stay out.
+5. Links live in a separate `oauth_identities` table, so the `users` table didn't change.
+
+To enable it, create an OAuth client in Google Cloud Console (APIs & Services > Credentials > Create OAuth client ID > Web application) with `http://localhost:5173` as an authorized JavaScript origin, and put the client ID in `backend/.env` as `GOOGLE_CLIENT_ID`. The client ID isn't secret; the frontend fetches it from `/api/auth/config`. Without it, the Google button simply doesn't appear.
 
 ## Upgrading an existing database
 

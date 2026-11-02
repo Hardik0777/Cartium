@@ -300,3 +300,18 @@ class Complaint(Base):
     resolved_at: Mapped[datetime | None] = mapped_column(Timestamp, nullable=True)
 
     user: Mapped[User] = relationship(lazy="joined")
+
+
+# ---------------------------------------------------------------- Google sign-in (Phase 6)
+class OAuthIdentity(Base):
+    """Links a login provider account (Google's stable user id, "sub") to a Cartium user.
+    A separate table, so existing databases upgrade without changing the users table."""
+    __tablename__ = "oauth_identities"
+    __table_args__ = (UniqueConstraint("provider", "subject"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    provider: Mapped[str] = mapped_column(String(20))      # "google"
+    subject: Mapped[str] = mapped_column(String(255))      # Google's user id; never changes, unlike email
+    email: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)

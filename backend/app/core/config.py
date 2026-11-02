@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24
     cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Google sign-in: the OAuth "Web application" client ID from Google Cloud Console
+    google_client_id: str = ""
+    google_jwks_url: str = "https://www.googleapis.com/oauth2/v3/certs"  # Google's public signing keys
+
     # Razorpay (use TEST keys locally: they start with rzp_test_)
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""

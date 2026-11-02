@@ -49,3 +49,14 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class GoogleSignIn(BaseModel):
+    credential: str = Field(min_length=20, max_length=5000)  # the ID token from Google's button
+    role: Literal["buyer", "seller"] | None = None            # only needed the first time
+
+
+class ChooseRole(BaseModel):
+    needs_role: bool = True
+    name: str
+    email: EmailStr
