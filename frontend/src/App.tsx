@@ -5,8 +5,10 @@ import Account from "./pages/Account";
 import AdminDashboard from "./pages/AdminDashboard";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import ProductPage from "./pages/ProductPage";
 import SellerDashboard from "./pages/SellerDashboard";
 import Signup from "./pages/Signup";
+import Wishlist from "./pages/Wishlist";
 
 export default function App() {
   return (
@@ -15,6 +17,8 @@ export default function App() {
       <Route path="/signup" element={<Signup />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
+        <Route path="/products/:id" element={<ProductPage />} />
+        <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
         <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="/seller" element={<ProtectedRoute roles={["seller"]}><SellerDashboard /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>} />

@@ -10,6 +10,7 @@ export default function Layout() {
       <header className="topbar">
         <Link to="/" className="wordmark">Cartium</Link>
         <nav>
+          {user?.role === "buyer" && <NavLink to="/wishlist">Wishlist</NavLink>}
           {user?.role === "seller" && <NavLink to="/seller">Seller hub</NavLink>}
           {user?.role === "admin" && <NavLink to="/admin">Admin</NavLink>}
           {user ? (

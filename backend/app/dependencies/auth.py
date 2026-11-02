@@ -35,6 +35,20 @@ def get_current_user(
     return user
 
 
+def get_optional_user(
+    creds: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Like get_current_user, but returns None for visitors instead of raising.
+    Used on public pages that add extras (wishlist hearts, recently viewed) for logged-in users."""
+    if creds is None:
+        return None
+    try:
+        return get_current_user(creds, db)
+    except HTTPException:
+        return None
+
+
 def require_role(*roles: Role) -> Callable[..., User]:
     """Usage: user: User = Depends(require_role(Role.admin))"""
 

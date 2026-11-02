@@ -62,3 +62,49 @@ export interface AuthResponse {
   access_token: string;
   user: User;
 }
+
+// ---------------------------------------------------------------- catalog (Phase 2)
+export interface Category { id: number; name: string; slug: string }
+
+export interface ProductCard {
+  id: number;
+  name: string;
+  brand: string;
+  price: number;
+  mrp: number;
+  stock: number;
+  image_url: string | null;
+  rating_avg: number;
+  rating_count: number;
+  category: Category;
+  seller: { id: number; name: string };
+  discount_pct: number;
+  stock_label: "in_stock" | "low" | "out_of_stock";
+}
+
+export interface ProductDetail extends ProductCard {
+  description: string;
+  in_wishlist: boolean;
+}
+
+export interface ProductPage { items: ProductCard[]; total: number; page: number; pages: number }
+
+export interface Review {
+  id: number;
+  rating: number;
+  body: string;
+  author: string;
+  is_mine: boolean;
+  seller_response: string | null;
+  created_at: string;
+}
+
+export interface ReviewSummary {
+  average: number;
+  count: number;
+  distribution: Record<string, number>;
+  reviews: Review[];
+}
+
+const inr = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+export const formatINR = (n: number) => inr.format(n);

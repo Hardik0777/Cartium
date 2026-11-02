@@ -9,7 +9,7 @@ An AI-powered marketplace where **buyers** shop with multiple named carts, **sel
 | Phase | Status |
 |---|---|
 | 1. Accounts: signup, login, JWT, buyer/seller/admin roles, seller approval state | ✅ Done |
-| 2. Catalog: categories, search, filters, product pages, wishlist, reviews | ⏳ |
+| 2. Catalog: categories, search, filters, product pages, wishlist, recently viewed, reviews | ✅ Done |
 | 3. Multiple carts, Razorpay checkout, order tracking | ⏳ |
 | 4. Seller dashboard | ⏳ |
 | 5. Admin dashboard | ⏳ |
@@ -58,7 +58,11 @@ Open http://localhost:5173
 |---|---|---|
 | Admin | admin@cartium.dev | Admin@123 |
 | Seller (approved) | seller@cartium.dev | Seller@123 |
+| Seller (approved) | home@cartium.dev | Seller@123 |
 | Buyer | buyer@cartium.dev | Buyer@123 |
+| Buyer | buyer2@cartium.dev | Buyer@123 |
+
+The seed also adds 7 categories, 30 products and a few reviews. Brand names in the demo catalog are invented.
 
 ## How authentication works
 
@@ -69,6 +73,17 @@ Open http://localhost:5173
 - Role guards (`require_role`, `require_approved_seller`) protect routes on the server; the frontend mirrors them only for navigation.
 - New sellers start as **pending** and can't sell until an admin approves them.
 - Wrong password and unknown email return the same message, so emails can't be probed.
+
+## Catalog design notes
+
+- **Visibility in one place:** shoppers only ever see listings that an admin approved, from sellers who are active and approved. Catalog, wishlist and review queries all go through the same `visible_products()` query, so a suspended seller's products disappear everywhere at once.
+- **Money as exact decimals:** prices are `DECIMAL(10,2)` in MySQL, never floats.
+- **Cached ratings:** each product stores its average rating and review count, recalculated whenever a review is added, edited or deleted, so listing pages don't average reviews on every request.
+- **Microsecond timestamps on MySQL:** MySQL's `DATETIME` keeps whole seconds by default, which made "recently viewed" order wrong when two products were opened within the same second. Timestamps use `DATETIME(6)`.
+- **Safe search:** `%` and `_` in search terms are escaped, so they match literally instead of acting as wildcards.
+- **Filters live in the URL,** so a filtered, sorted page can be bookmarked or shared.
+- **Recently viewed** keeps the latest 20 products per user, with no duplicates.
+- **Review privacy:** reviews show the reviewer's first name only.
 
 ## Tests
 

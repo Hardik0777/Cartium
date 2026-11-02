@@ -2,6 +2,8 @@
 otherwise a throwaway SQLite file."""
 import os
 
+os.environ.setdefault("JWT_SECRET", "test-secret-that-is-long-enough-for-hs256-signing")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import sessionmaker
@@ -9,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from app.core.security import hash_password
 from app.database import Base, create_database_if_missing, get_db, make_engine
 from app.main import app
-from app.models import Role, SellerStatus, User
+from app.models import Category, ListingStatus, Product, Role, SellerStatus, User
 
 
 @pytest.fixture()
@@ -58,3 +60,35 @@ def login(client):
         assert res.status_code == 200, res.text
         return {"Authorization": f"Bearer {res.json()['access_token']}"}
     return _login
+
+
+@pytest.fixture()
+def catalog(db_session):
+    """Two categories, an approved seller with 4 products (one out of stock, one pending review),
+    and a suspended seller whose product must never be shown."""
+    from decimal import Decimal
+
+    with db_session() as db:
+        good = User(name="Good Seller", email="good@test.dev", password_hash=hash_password("Passw0rd!"),
+                    role=Role.seller, seller_status=SellerStatus.approved)
+        bad = User(name="Suspended Seller", email="bad@test.dev", password_hash=hash_password("Passw0rd!"),
+                   role=Role.seller, seller_status=SellerStatus.suspended)
+        elec, home = Category(name="Electronics", slug="electronics"), Category(name="Home", slug="home")
+        db.add_all([good, bad, elec, home])
+        db.flush()
+
+        def product(name, cat, price, mrp, stock=10, seller=good, status=ListingStatus.approved, brand="Acme"):
+            p = Product(seller_id=seller.id, category_id=cat.id, name=name, brand=brand, description=f"{name} details",
+                        price=Decimal(price), mrp=Decimal(mrp), stock=stock, status=status)
+            db.add(p)
+            return p
+
+        items = {
+            "earbuds": product("Wireless Earbuds", elec, 2499, 4999),
+            "keyboard": product("Mechanical Keyboard", elec, 4499, 5999, stock=0, brand="KeyNest"),
+            "kettle": product("Electric Kettle", home, 899, 1599),
+            "pending": product("Unreviewed Gadget", elec, 999, 999, status=ListingStatus.pending),
+            "hidden": product("Suspended Seller Lamp", home, 500, 800, seller=bad),
+        }
+        db.commit()
+        return {k: v.id for k, v in items.items()}
