@@ -11,7 +11,7 @@ An AI-powered marketplace where **buyers** shop with multiple named carts, **sel
 | 1. Accounts: signup, login, JWT, buyer/seller/admin roles, seller approval state | ✅ Done |
 | 2. Catalog: categories, search, filters, product pages, wishlist, recently viewed, reviews | ✅ Done |
 | 3. Multiple named carts, saved addresses, Razorpay checkout, order tracking, reorder | ✅ Done |
-| 4. Seller dashboard | ⏳ |
+| 4. Seller hub: listings with photo upload, stock alerts, order shipping, review replies | ✅ Done |
 | 5. Admin dashboard | ⏳ |
 | 6. Google sign-in | ⏳ |
 | 7. AI shopping assistant (RAG) | ⏳ |
@@ -96,6 +96,16 @@ Razorpay test mode works end to end locally. Pay with Razorpay's test cards or t
 5. **Orders are snapshots.** Item names, prices paid and the delivery address are copied onto the order, so later edits to a listing or address never change past orders.
 6. **Per-item tracking.** Each seller ships their own items, so status (Placed, Packed, Shipped, Delivered) is tracked per item; the order shows the progress of its slowest item.
 7. **Verifying twice is safe.** A double click or retry won't mark an order paid twice.
+
+## Seller hub
+
+- **Listings:** create, edit and delete products with price, MRP, stock and a low-stock alert level. New listings wait for admin approval (Phase 5); editing a rejected listing resubmits it.
+- **Photo upload:** JPG, PNG or WebP up to 2 MB. Files are checked by their actual bytes, not their name, and saved under random names. Image links must be uploads or `https://`, so a listing can't carry `javascript:` URLs.
+- **Orders:** each seller sees only their own items, with the buyer's delivery address. Status only moves forward (Placed, Packed, Shipped, Delivered); an item can be cancelled until it ships, which puts the stock back. The buyer's tracker follows automatically.
+- **Overview:** revenue, orders, units sold, average rating, items to ship, low-stock warnings and best sellers.
+- **Reviews:** reply publicly to reviews on your products.
+
+Uploaded photos are stored in `backend/uploads/`. That's fine locally; on hosts with temporary disks (like Render's free tier) they'd be lost on restart, so deployment (Phase 8) moves them to object storage.
 
 ## Tests
 

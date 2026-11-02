@@ -1,5 +1,5 @@
 // Small fetch wrapper: adds the JWT, turns API errors into readable messages.
-const BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://127.0.0.1:8000";
+export const BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://127.0.0.1:8000";
 const TOKEN_KEY = "cartium_token";
 
 export const tokenStore = {
@@ -166,3 +166,82 @@ export interface Order {
 }
 
 export const json = (body: unknown, method = "POST"): RequestInit => ({ method, body: JSON.stringify(body) });
+
+// ---------------------------------------------------------------- seller (Phase 4)
+/** Uploaded photos are served by the API, so relative paths need the API's address in front. */
+export const mediaUrl = (url: string | null) => (url && url.startsWith("/") ? BASE + url : url);
+
+export async function uploadPhoto(file: File): Promise<string> {
+  const body = new FormData();
+  body.append("file", file);
+  const token = tokenStore.get();
+  let res: Response;
+  try {
+    res = await fetch(BASE + "/api/seller/uploads", { method: "POST", body, headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  } catch {
+    throw new ApiError(0, "Can't reach the Cartium server. Check that the backend is running.");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, readableDetail(data.detail));
+  return data.url as string;
+}
+
+export interface Listing {
+  id: number;
+  name: string;
+  brand: string;
+  description: string;
+  category_id: number;
+  category_name: string;
+  category_slug: string;
+  price: number;
+  mrp: number;
+  stock: number;
+  low_stock_threshold: number;
+  image_url: string | null;
+  status: "pending" | "approved" | "rejected" | "removed";
+  rating_avg: number;
+  rating_count: number;
+  units_sold: number;
+  created_at: string;
+}
+
+export interface SellerOrderItem {
+  id: number;
+  order_id: number;
+  product_id: number | null;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  status: ItemStatus;
+  status_updated_at: string;
+  ordered_at: string;
+  buyer_name: string;
+  ship_name: string;
+  ship_phone: string;
+  ship_address: string;
+  next_statuses: ItemStatus[];
+}
+
+export interface SellerDashboardData {
+  revenue: number;
+  orders: number;
+  units_sold: number;
+  to_ship: number;
+  live_listings: number;
+  pending_listings: number;
+  average_rating: number | null;
+  low_stock: Listing[];
+  top_products: { id: number; name: string; units: number; revenue: number }[];
+}
+
+export interface SellerReview {
+  id: number;
+  product_id: number;
+  product_name: string;
+  rating: number;
+  body: string;
+  author: string;
+  seller_response: string | null;
+  created_at: string;
+}
