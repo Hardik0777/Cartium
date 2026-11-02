@@ -3,10 +3,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import account, addresses, auth, cart, catalog, health, orders, reviews, seller
+from app.routers import account, addresses, admin, auth, cart, catalog, health, orders, reviews, seller
 from app.services.uploads import UPLOAD_DIR
 
-app = FastAPI(title="Cartium API", version="0.4.0")
+app = FastAPI(title="Cartium API", version="0.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,6 +25,7 @@ app.include_router(cart.router)
 app.include_router(addresses.router)
 app.include_router(orders.router)
 app.include_router(seller.router)
+app.include_router(admin.router)
 
 # Seller photo uploads. (On hosts with temporary disks, use object storage instead; see README.)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

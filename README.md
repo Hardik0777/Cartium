@@ -12,7 +12,7 @@ An AI-powered marketplace where **buyers** shop with multiple named carts, **sel
 | 2. Catalog: categories, search, filters, product pages, wishlist, recently viewed, reviews | ✅ Done |
 | 3. Multiple named carts, saved addresses, Razorpay checkout, order tracking, reorder | ✅ Done |
 | 4. Seller hub: listings with photo upload, stock alerts, order shipping, review replies | ✅ Done |
-| 5. Admin dashboard | ⏳ |
+| 5. Admin: approvals, moderation, bans, refunds via Razorpay, complaints, fraud flags, audit log | ✅ Done |
 | 6. Google sign-in | ⏳ |
 | 7. AI shopping assistant (RAG) | ⏳ |
 | 8. Deployment and docs | ⏳ |
@@ -106,6 +106,20 @@ Razorpay test mode works end to end locally. Pay with Razorpay's test cards or t
 - **Reviews:** reply publicly to reviews on your products.
 
 Uploaded photos are stored in `backend/uploads/`. That's fine locally; on hosts with temporary disks (like Render's free tier) they'd be lost on restart, so deployment (Phase 8) moves them to object storage.
+
+## Admin
+
+- **Approvals:** new sellers and new listings wait in one queue. Rejecting a listing requires a reason, which the seller sees; fixing it resubmits automatically.
+- **Users:** search, change roles, approve or suspend sellers, ban and unban. A ban signs the person out on every device immediately (the JWT's `token_version` is bumped), and suspending a seller hides all their products at once. Admins can't ban or demote themselves.
+- **Refunds:** created automatically when a seller cancels a paid item, or when a payment arrives after a checkout expired. An admin sends each refund through Razorpay's refund API; a refund can never be sent twice (row lock plus status check), and rejecting one needs a note.
+- **Complaints:** buyers report a problem from the order page (one open report per order); the admin's reply resolves it and shows to the buyer.
+- **Fraud flags:** explainable rules (orders over ₹25,000, five or more unpaid checkouts in 24 hours, a seller cancelling three or more paid items in a week). They point an admin at something; they never block anyone automatically.
+- **Analytics:** sales, orders, buyers, sellers, sign-ups, and revenue for the last 14 days, counted in India time.
+- **Audit log:** every admin decision is stored with who made it, when, and the note.
+
+## Upgrading an existing database
+
+Each phase only adds new tables, so after pulling a new version just run `python -m app.seed` again. It creates whatever is missing and never touches existing rows. (A production app would use migrations, for example Alembic, once columns need to change.)
 
 ## Tests
 

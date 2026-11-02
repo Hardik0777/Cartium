@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { api, formatINR, type Order } from "../api";
+import { api, formatINR, json, type Complaint, type Order } from "../api";
 import { useCarts } from "../cart";
 import Tracker from "../components/Tracker";
 import { orderDate } from "./Orders";
@@ -52,6 +52,7 @@ export default function OrderDetail() {
           </ul>
           <button className="btn btn-quiet" onClick={reorder}>Buy these again</button>
           {note && <p className="muted">{note}</p>}
+          <Help orderId={order.id} />
         </section>
         <aside className="summary">
           <h2>Delivery</h2>
@@ -64,5 +65,50 @@ export default function OrderDetail() {
         </aside>
       </div>
     </article>
+  );
+}
+
+function Help({ orderId }: { orderId: number }) {
+  const [items, setItems] = useState<Complaint[]>([]);
+  const [open, setOpen] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => { api<Complaint[]>(`/api/orders/${orderId}/complaints`).then(setItems).catch(() => {}); }, [orderId]);
+  const hasOpen = items.some((c) => c.status === "open");
+
+  async function send(e: FormEvent) {
+    e.preventDefault();
+    try {
+      const c = await api<Complaint>(`/api/orders/${orderId}/complaints`, json({ subject, message }));
+      setItems([...items, c]); setOpen(false); setSubject(""); setMessage(""); setError("");
+    } catch (err) { setError((err as Error).message); }
+  }
+
+  return (
+    <section className="help">
+      <h2>Need help with this order?</h2>
+      {items.map((c) => (
+        <div key={c.id} className="help-item">
+          <strong>{c.subject}</strong> <span className={`status-chip ${c.status === "open" ? "" : "status-delivered"}`}>{c.status === "open" ? "We're looking into it" : "Resolved"}</span>
+          <p className="muted">{c.message}</p>
+          {c.admin_reply && <p className="seller-reply"><strong>Cartium support:</strong> {c.admin_reply}</p>}
+        </div>
+      ))}
+      {open ? (
+        <form className="review-form" onSubmit={send}>
+          <label className="col">What went wrong?<input required minLength={3} maxLength={120} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Item arrived damaged" /></label>
+          <textarea required minLength={10} maxLength={3000} rows={4} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Tell us what happened, so we can sort it out." />
+          {error && <p className="error" role="alert">{error}</p>}
+          <div className="actions">
+            <button className="btn btn-small">Send to support</button>
+            <button type="button" className="link-button" onClick={() => setOpen(false)}>Cancel</button>
+          </div>
+        </form>
+      ) : (
+        !hasOpen && <button className="link-button" onClick={() => setOpen(true)}>Report a problem</button>
+      )}
+    </section>
   );
 }

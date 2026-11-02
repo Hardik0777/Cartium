@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies.auth import require_approved_seller
 from app.models import (
-    Category, ItemStatus, ListingStatus, Order, OrderItem, OrderStatus, Product, Review, User, utcnow,
+    AdminAction, Category, ItemStatus, ListingStatus, Order, OrderItem, OrderStatus, Product, Refund, Review, User,
+    utcnow,
 )
 from app.schemas_seller import (
     Dashboard, ItemStatusIn, ListingIn, ListingOut, ResponseIn, SellerOrderItem, SellerReview, TopProduct,
@@ -41,8 +42,14 @@ def _units_sold(db: Session, product_ids: list[int]) -> dict[int, int]:
     return {pid: int(n) for pid, n in rows}
 
 
-def _listing(p: Product, sold: int = 0) -> ListingOut:
-    return ListingOut(id=p.id, name=p.name, brand=p.brand, description=p.description, category_id=p.category_id,
+def _moderation_note(db: Session, product_id: int) -> str | None:
+    last = db.scalar(select(AdminAction).where(AdminAction.target_type == "product", AdminAction.target_id == product_id)
+                     .order_by(AdminAction.id.desc()))
+    return last.note if last and last.action in ("rejected", "removed") and last.note else None
+
+
+def _listing(p: Product, sold: int = 0, db: Session | None = None) -> ListingOut:
+    return ListingOut(moderation_note=_moderation_note(db, p.id) if db is not None and p.status in (ListingStatus.rejected, ListingStatus.removed) else None,id=p.id, name=p.name, brand=p.brand, description=p.description, category_id=p.category_id,
                       category_name=p.category.name, category_slug=p.category.slug, price=float(p.price), mrp=float(p.mrp), stock=p.stock,
                       low_stock_threshold=p.low_stock_threshold, image_url=p.image_url, status=p.status.value,
                       rating_avg=float(p.rating_avg), rating_count=p.rating_count, units_sold=sold,
@@ -66,7 +73,7 @@ def _check_category(db: Session, category_id: int) -> None:
 def my_listings(user: User = Depends(seller), db: Session = Depends(get_db)):
     products = db.scalars(select(Product).where(Product.seller_id == user.id).order_by(Product.created_at.desc(), Product.id.desc())).all()
     sold = _units_sold(db, [p.id for p in products])
-    return [_listing(p, sold.get(p.id, 0)) for p in products]
+    return [_listing(p, sold.get(p.id, 0), db) for p in products]
 
 
 @router.post("/products", response_model=ListingOut, status_code=status.HTTP_201_CREATED)
@@ -147,7 +154,10 @@ def update_item_status(item_id: int, body: ItemStatusIn, user: User = Depends(se
         product = db.get(Product, item.product_id, with_for_update=True, populate_existing=True)
         if product:
             product.stock += item.quantity  # put it back on the shelf
-        # The buyer's refund for this item is handled by an admin (Phase 5).
+    if new == ItemStatus.cancelled:
+        # The buyer paid for this item, so queue a refund for an admin to send.
+        db.add(Refund(order_id=item.order_id, order_item_id=item.id, amount=item.unit_price * item.quantity,
+                      reason=f"Seller cancelled: {item.name} × {item.quantity}"))
     item.status = new
     item.status_updated_at = utcnow()
     db.commit()

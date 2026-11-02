@@ -53,6 +53,7 @@ class ListingOut(BaseModel):
     rating_count: int
     units_sold: int
     created_at: datetime
+    moderation_note: str | None = None   # why an admin rejected or removed it
 
 
 class SellerOrderItem(BaseModel):

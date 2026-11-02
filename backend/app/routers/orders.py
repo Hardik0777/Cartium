@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.database import get_db
 from app.dependencies.auth import require_role
-from app.models import Address, CartItem, Order, OrderStatus, Role, User, utcnow
+from app.models import Address, CartItem, Complaint, ComplaintStatus, Order, OrderStatus, Refund, Role, User, utcnow
+from app.routers.admin import complaint_row
+from app.schemas_admin import ComplaintIn, ComplaintRow
 from app.schemas_commerce import CheckoutIn, CheckoutOut, OrderOut, ReorderOut, VerifyIn
 from app.services import carts, orders, razorpay
 from app.services.catalog import is_visible
@@ -56,8 +58,13 @@ def verify_payment(body: VerifyIn, user: User = Depends(buyer), db: Session = De
     if order.status == OrderStatus.paid:
         return orders.to_out(db, order)  # verifying twice (e.g. a double click) is harmless
     if order.status == OrderStatus.cancelled:
-        # Paid after the reservation lapsed. Rare; needs a manual refund (admin tools, Phase 5).
-        raise HTTPException(409, "This checkout expired before payment finished. Contact support for a refund.")
+        # Paid after the reservation lapsed and the stock went back on sale. Rare, but the money
+        # must go back: record the payment and queue a full refund for an admin.
+        if order.razorpay_payment_id is None:
+            order.razorpay_payment_id = body.razorpay_payment_id
+            db.add(Refund(order_id=order.id, amount=order.total, reason="Paid after the checkout expired"))
+            db.commit()
+        raise HTTPException(409, "This checkout expired before payment finished. Your money will be refunded.")
 
     order.status = OrderStatus.paid
     order.razorpay_payment_id = body.razorpay_payment_id
@@ -114,3 +121,24 @@ def reorder(order_id: int, user: User = Depends(buyer), db: Session = Depends(ge
             skipped.append(item.name)  # e.g. already at the maximum in the cart
     db.commit()
     return ReorderOut(cart_id=cart.id, added=added, skipped=skipped)
+
+
+@router.get("/{order_id}/complaints", response_model=list[ComplaintRow])
+def order_complaints(order_id: int, user: User = Depends(buyer), db: Session = Depends(get_db)):
+    _own_order(db, user, order_id)
+    return [complaint_row(c) for c in db.scalars(select(Complaint).where(Complaint.order_id == order_id).order_by(Complaint.id))]
+
+
+@router.post("/{order_id}/complaints", response_model=ComplaintRow, status_code=201)
+def report_problem(order_id: int, body: ComplaintIn, user: User = Depends(buyer), db: Session = Depends(get_db)):
+    order = _own_order(db, user, order_id)
+    if order.status != OrderStatus.paid:
+        raise HTTPException(409, "You can only report problems with paid orders")
+    open_count = db.scalar(select(func.count(Complaint.id)).where(Complaint.order_id == order_id, Complaint.status == ComplaintStatus.open))
+    if open_count:
+        raise HTTPException(409, "You already have an open report for this order; we'll reply soon")
+    c = Complaint(user_id=user.id, order_id=order_id, subject=body.subject.strip(), message=body.message.strip())
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return complaint_row(c)

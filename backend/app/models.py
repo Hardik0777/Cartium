@@ -238,3 +238,65 @@ class OrderItem(Base):
     status_updated_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
 
     order: Mapped[Order] = relationship(back_populates="items")
+
+
+# ---------------------------------------------------------------- admin (Phase 5)
+# New tables only, so existing databases upgrade by re-running the seed (no column changes).
+class AdminAction(Base):
+    """Audit log: every admin decision, who made it, when and why."""
+    __tablename__ = "admin_actions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    admin_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    target_type: Mapped[str] = mapped_column(String(20), index=True)   # user | product | refund | complaint
+    target_id: Mapped[int] = mapped_column(Integer, index=True)
+    action: Mapped[str] = mapped_column(String(40))
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow, index=True)
+
+    admin: Mapped[User] = relationship(lazy="joined")
+
+
+class RefundStatus(str, enum.Enum):
+    requested = "requested"
+    processed = "processed"
+    rejected = "rejected"
+
+
+class Refund(Base):
+    __tablename__ = "refunds"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    order_item_id: Mapped[int | None] = mapped_column(ForeignKey("order_items.id", ondelete="SET NULL"), nullable=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    reason: Mapped[str] = mapped_column(String(200))
+    status: Mapped[RefundStatus] = mapped_column(Enum(RefundStatus, native_enum=False, length=20),
+                                                 default=RefundStatus.requested, index=True)
+    razorpay_refund_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
+    processed_at: Mapped[datetime | None] = mapped_column(Timestamp, nullable=True)
+
+    order: Mapped[Order] = relationship(lazy="joined")
+
+
+class ComplaintStatus(str, enum.Enum):
+    open = "open"
+    resolved = "resolved"
+
+
+class Complaint(Base):
+    __tablename__ = "complaints"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    subject: Mapped[str] = mapped_column(String(120))
+    message: Mapped[str] = mapped_column(Text)
+    status: Mapped[ComplaintStatus] = mapped_column(Enum(ComplaintStatus, native_enum=False, length=20),
+                                                    default=ComplaintStatus.open, index=True)
+    admin_reply: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow, index=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(Timestamp, nullable=True)
+
+    user: Mapped[User] = relationship(lazy="joined")

@@ -204,6 +204,7 @@ export interface Listing {
   rating_count: number;
   units_sold: number;
   created_at: string;
+  moderation_note: string | null;
 }
 
 export interface SellerOrderItem {
@@ -244,4 +245,34 @@ export interface SellerReview {
   author: string;
   seller_response: string | null;
   created_at: string;
+}
+
+// ---------------------------------------------------------------- admin (Phase 5)
+export interface AdminUser {
+  id: number; name: string; email: string; role: Role; seller_status: User["seller_status"];
+  is_active: boolean; created_at: string; orders: number; listings: number;
+}
+
+export interface AdminProduct {
+  id: number; name: string; brand: string; description: string; category: string; price: number; mrp: number;
+  stock: number; image_url: string | null; status: string; seller_id: number; seller_name: string; created_at: string;
+}
+
+export interface AdminRefund {
+  id: number; order_id: number; buyer_name: string; buyer_email: string; amount: number; reason: string;
+  status: "requested" | "processed" | "rejected"; razorpay_payment_id: string | null; razorpay_refund_id: string | null;
+  created_at: string; processed_at: string | null;
+}
+
+export interface Complaint {
+  id: number; order_id: number; buyer_name: string; subject: string; message: string; status: "open" | "resolved";
+  admin_reply: string | null; created_at: string; resolved_at: string | null;
+}
+
+export interface AdminDashboardData {
+  buyers: number; sellers: number; new_users_7d: number; paid_orders: number; gmv: number; gmv_30d: number;
+  pending_sellers: number; pending_listings: number; refunds_requested: number; open_complaints: number;
+  last_14_days: { day: string; orders: number; revenue: number }[];
+  flags: { kind: string; severity: "review" | "high"; message: string; user_id: number | null; order_id: number | null }[];
+  recent_actions: { id: number; admin_name: string; target_type: string; target_id: number; action: string; note: string; created_at: string }[];
 }

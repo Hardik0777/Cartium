@@ -44,6 +44,7 @@ export default function Listings() {
                 {l.status === "approved" ? <Link to={`/products/${l.id}`} className="line-name">{l.name}</Link> : <span className="line-name">{l.name}</span>}
                 <span className="muted">{l.category_name} · {formatINR(l.price)} <s>{formatINR(l.mrp)}</s> · {l.units_sold} sold</span>
                 <span className={`listing-status listing-${l.status}`}>{STATUS[l.status]}</span>
+                {l.moderation_note && <span className="small error">Admin's note: {l.moderation_note}</span>}
               </div>
               <div className={low ? "stock-cell stock-cell-low" : "stock-cell"}>
                 <strong>{l.stock}</strong>
