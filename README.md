@@ -15,7 +15,18 @@ An AI-powered marketplace where **buyers** shop with multiple named carts, **sel
 | 5. Admin: approvals, moderation, bans, refunds via Razorpay, complaints, fraud flags, audit log | ✅ Done |
 | 6. Sign in with Google: verified ID tokens, role choice for new users, account linking | ✅ Done |
 | 7. AI shopping assistant: hybrid RAG search, live facts, safe cart actions, order status | ✅ Done |
-| 8. Deployment and docs | ⏳ |
+| 8. Deployment: Vercel (frontend), Render (API), Railway (MySQL) | ✅ Done |
+
+## Live demo
+
+**Site:** https://YOUR-VERCEL-URL &nbsp;·&nbsp; **API docs:** https://YOUR-RENDER-URL/docs
+
+| Try it as | Email | Password |
+|---|---|---|
+| Buyer (shop, carts, Ask Cartium) | `buyer@cartium.dev` | `Buyer@123` |
+| Seller (listings, orders) | `seller@cartium.dev` | `Seller@123` |
+
+Payments run in Razorpay **test mode**: pay with card `4111 1111 1111 1111`, any future expiry and any CVV, or UPI `success@razorpay`. No real money moves. The API sleeps when idle on the free plan, so the first request can take about a minute.
 
 ## Run it locally (Windows)
 
@@ -183,3 +194,16 @@ frontend/
     api.ts         API client
     auth.tsx       session handling
 ```
+
+
+## Deployment
+
+| Part | Host | Notes |
+|---|---|---|
+| Frontend | Vercel | Root directory `frontend`; `VITE_API_BASE_URL` points at the API; `vercel.json` sends every route to the React app |
+| API | Render (free web service) | `render.yaml` Blueprint; start command runs the seed (idempotent) then uvicorn |
+| Database | Railway MySQL | Public connection URL in `DATABASE_URL` (`mysql://` is converted to the PyMySQL driver automatically) |
+
+Production safeguards: with `APP_ENV=production` the API refuses to start without a strong `JWT_SECRET`, and the seed refuses to create the admin account without `SEED_ADMIN_PASSWORD`. CORS only allows the origins in `CORS_ALLOW_ORIGINS`.
+
+Known limits of the free setup: Render's disk is temporary, so seller photo uploads disappear on restart (object storage such as Cloudinary or S3 is the fix) and the assistant index is rebuilt on each start.

@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     free_shipping_over: int = 499        # rupees
     shipping_fee: int = 40               # rupees
 
+    # Deployment: the seed uses this as the admin password when set (required when APP_ENV=production)
+    seed_admin_password: str = ""
+
     @field_validator("database_url")
     @classmethod
     def use_pymysql_driver(cls, url: str) -> str:
@@ -41,7 +44,12 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
+        return [o.strip().rstrip("/") for o in self.cors_allow_origins.split(",") if o.strip()]
 
 
 settings = Settings()
+
+if settings.app_env == "production":
+    # Refuse to start a public server with the development secrets.
+    if settings.jwt_secret.startswith("dev-secret") or len(settings.jwt_secret) < 32:
+        raise RuntimeError("Set JWT_SECRET to a random value of 32+ characters before running in production")

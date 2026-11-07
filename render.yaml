@@ -1,0 +1,36 @@
+# Render Blueprint for the Cartium API (Dashboard > New > Blueprint, pick this repo).
+services:
+  - type: web
+    name: cartium-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # The seed creates missing tables and rebuilds the assistant index (Render's disk is wiped on each restart).
+    startCommand: python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: APP_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false          # Railway MySQL public URL
+      - key: CORS_ALLOW_ORIGINS
+        sync: false          # your Vercel URL, e.g. https://cartium.vercel.app
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: HUGGINGFACE_CHAT_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+      - key: HUGGINGFACE_API_KEY
+        sync: false          # Gemini API key
+      - key: AI_MODEL_NAME
+        sync: false          # e.g. gemini-3-flash-preview

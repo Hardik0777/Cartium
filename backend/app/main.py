@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.routers import account, addresses, admin, ai, auth, cart, catalog, health, orders, reviews, seller
 from app.services.uploads import UPLOAD_DIR
 
-app = FastAPI(title="Cartium API", version="0.7.0")
+app = FastAPI(title="Cartium API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

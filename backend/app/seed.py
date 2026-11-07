@@ -13,7 +13,8 @@ from app.database import Base, SessionLocal, create_database_if_missing, engine
 from app.data.catalog import CATEGORIES, PRODUCTS, REVIEWS
 from app.models import Category, ListingStatus, Product, Review, Role, SellerStatus, User
 
-# Local demo only. Change these before deploying anywhere public.
+# Demo accounts. On a public deployment the buyer and seller logins stay public so visitors can try
+# the site, but the admin password must come from SEED_ADMIN_PASSWORD.
 DEMO_USERS = [
     {"name": "Admin User", "email": "admin@cartium.dev", "password": "Admin@123", "role": Role.admin},
     {"name": "Sharma Electronics", "email": "seller@cartium.dev", "password": "Seller@123",
@@ -25,6 +26,14 @@ DEMO_USERS = [
 ]
 
 
+def _password(u: dict) -> str:
+    if u["role"] == Role.admin and settings.seed_admin_password:
+        return settings.seed_admin_password
+    if u["role"] == Role.admin and settings.app_env == "production":
+        raise SystemExit("Set SEED_ADMIN_PASSWORD before seeding a production database")
+    return u["password"]
+
+
 def seed() -> None:
     create_database_if_missing(settings.database_url)
     Base.metadata.create_all(engine)
@@ -33,7 +42,7 @@ def seed() -> None:
             if db.scalar(select(User).where(User.email == u["email"])):
                 print(f"  exists   {u['email']}")
                 continue
-            db.add(User(name=u["name"], email=u["email"], password_hash=hash_password(u["password"]),
+            db.add(User(name=u["name"], email=u["email"], password_hash=hash_password(_password(u)),
                         role=u["role"], seller_status=u.get("seller_status")))
             print(f"  created  {u['email']}  ({u['role'].value})")
         db.commit()
