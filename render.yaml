@@ -4,6 +4,7 @@ services:
     name: cartium-api
     runtime: python
     plan: free
+    region: singapore
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     # The seed creates missing tables and rebuilds the assistant index (Render's disk is wiped on each restart).
