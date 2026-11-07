@@ -276,3 +276,13 @@ export interface AdminDashboardData {
   flags: { kind: string; severity: "review" | "high"; message: string; user_id: number | null; order_id: number | null }[];
   recent_actions: { id: number; admin_name: string; target_type: string; target_id: number; action: string; note: string; created_at: string }[];
 }
+
+// ---------------------------------------------------------------- AI assistant (Phase 7)
+export interface ChatTurn {
+  role: "user" | "assistant";
+  text: string;
+  products: ProductCard[];
+  orders: { id: number; progress: string; total: number; items: number }[];
+  action: { type: "add_to_cart"; product_id: number; cart_id: number | null; cart_name: string | null } | null;
+  source: "llm" | "database" | "fallback" | null;
+}

@@ -14,7 +14,7 @@ An AI-powered marketplace where **buyers** shop with multiple named carts, **sel
 | 4. Seller hub: listings with photo upload, stock alerts, order shipping, review replies | ✅ Done |
 | 5. Admin: approvals, moderation, bans, refunds via Razorpay, complaints, fraud flags, audit log | ✅ Done |
 | 6. Sign in with Google: verified ID tokens, role choice for new users, account linking | ✅ Done |
-| 7. AI shopping assistant (RAG) | ⏳ |
+| 7. AI shopping assistant: hybrid RAG search, live facts, safe cart actions, order status | ✅ Done |
 | 8. Deployment and docs | ⏳ |
 
 ## Run it locally (Windows)
@@ -126,6 +126,30 @@ Uploaded photos are stored in `backend/uploads/`. That's fine locally; on hosts 
 5. Links live in a separate `oauth_identities` table, so the `users` table didn't change.
 
 To enable it, create an OAuth client in Google Cloud Console (APIs & Services > Credentials > Create OAuth client ID > Web application) with `http://localhost:5173` as an authorized JavaScript origin, and put the client ID in `backend/.env` as `GOOGLE_CLIENT_ID`. The client ID isn't secret; the frontend fetches it from `/api/auth/config`. Without it, the Google button simply doesn't appear.
+
+## AI shopping assistant
+
+The **Ask Cartium** button opens a chat for shoppers.
+
+| Ask | What happens |
+|---|---|
+| "Gift ideas under ₹1,000", "earbuds with noise cancellation" | Search finds matching products; a Hugging Face model writes the answer; product cards with **Add to cart** appear underneath |
+| "How much is delivery?", "Can I cancel after shipping?" | Answered from Cartium's FAQs and policies (the same rules the code enforces) |
+| "Where is my order?", "Status of order #12" | Answered straight from the shopper's own orders, no model needed |
+| "Add Assam tea to my Groceries cart" | The assistant **suggests** the product and cart; nothing changes until the shopper clicks the button |
+
+How it works:
+
+1. **Index:** live products, FAQs and policies are embedded with `all-MiniLM-L6-v2` (sentence-transformers, run by ChromaDB via ONNX, so no PyTorch) and stored in ChromaDB. The seed builds it; admins can rebuild it from the dashboard; it builds itself if empty.
+2. **Hybrid search:** meaning-based similarity plus a boost when the typed words appear in a product's name, because embeddings alone can rank an exact name like "mechanical keyboard" below loosely related items. Only results within 60% of the best score are kept, so a delivery question doesn't come back with random products.
+3. **Live facts:** the index holds only text and ids. Prices, stock, ratings and whether a product is still for sale are read from MySQL for every answer, so the assistant never quotes an old price or suggests a removed product.
+4. **Answer:** a LangChain prompt gives the model the facts inside a clearly marked data block, plus the last few chat turns. The model is told to use only those facts and never invent prices or policies.
+5. **Prompt-injection safety:** product descriptions are written by sellers, so they're treated as data. Actions (cart suggestions, order lookups) are decided only from the shopper's own message, never from model output or product text. A test plants "IGNORE ALL PREVIOUS INSTRUCTIONS" in a description and checks nothing happens.
+6. **Never a different product:** if the requested product is out of stock, the assistant says so and shows alternatives, but never offers to add something else in its place.
+7. **Works without the model:** if Hugging Face is down or the token is missing, shoppers still get matching products and the right FAQ answer.
+8. **History and limits:** chats are saved per shopper (clearable), and each shopper is limited to 20 messages a minute.
+
+Settings in `backend/.env`: `HUGGINGFACE_API_KEY` (fine-grained token with "Make calls to Inference Providers") and `AI_MODEL_NAME` (default `Qwen/Qwen2.5-7B-Instruct`; any chat model offered by Hugging Face Inference Providers works). The first question downloads the ~80 MB embedding model once.
 
 ## Upgrading an existing database
 

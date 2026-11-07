@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { mediaUrl, type ProductCard } from "../api";
 
 // Until sellers upload photos (Phase 4), each product gets a designed tile in its category's colour.
@@ -16,8 +17,11 @@ function initials(name: string) {
 }
 
 export default function ProductImage({ product, size = "card" }: { product: Pick<ProductCard, "name" | "image_url" | "category">; size?: "card" | "large" }) {
-  if (product.image_url) {
-    return <img className={`product-img product-img-${size}`} src={mediaUrl(product.image_url)!} alt={product.name} loading="lazy" />;
+  const [broken, setBroken] = useState(false);
+  if (product.image_url && !broken) {
+    // If the photo can't load (deleted, moved, offline), fall back to the coloured tile below.
+    return <img className={`product-img product-img-${size}`} src={mediaUrl(product.image_url)!} alt={product.name}
+                loading="lazy" onError={() => setBroken(true)} />;
   }
   const [bg, fg] = TINTS[product.category.slug] ?? ["#e4ecee", "#0e4f5c"];
   return (

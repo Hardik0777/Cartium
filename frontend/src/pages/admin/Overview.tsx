@@ -3,6 +3,25 @@ import { api, formatINR, type AdminDashboardData } from "../../api";
 import RevenueChart from "./RevenueChart";
 
 
+function RebuildIndex() {
+  const [state, setState] = useState("");
+  async function run() {
+    setState("Rebuilding…");
+    try {
+      const r = await api<{ products: number; faqs: number; policies: number }>("/api/ai/ingest", { method: "POST" });
+      setState(`Done: ${r.products} products, ${r.faqs} FAQs and ${r.policies} policies indexed.`);
+    } catch (e) { setState((e as Error).message); }
+  }
+  return (
+    <section>
+      <h2>Shopping assistant</h2>
+      <p className="muted small">The assistant searches an index of live products, FAQs and policies. Prices and stock are always read live, but rebuild the index after approving many new products so it can find them.</p>
+      <button className="btn btn-small btn-quiet" onClick={run} disabled={state === "Rebuilding…"}>Rebuild assistant index</button>
+      {state && <p className="small" role="status">{state}</p>}
+    </section>
+  );
+}
+
 export default function Overview({ goTo }: { goTo: (tab: string) => void }) {
   const [d, setD] = useState<AdminDashboardData | null>(null);
   useEffect(() => { api<AdminDashboardData>("/api/admin/dashboard").then(setD); }, []);
@@ -53,6 +72,8 @@ export default function Overview({ goTo }: { goTo: (tab: string) => void }) {
           <p className="muted small">Flags are simple rules (large orders, repeated unpaid checkouts, sellers cancelling often). They don't block anyone.</p>
         </section>
       </div>
+
+      <RebuildIndex />
 
       <section>
         <h2>Recent admin actions</h2>

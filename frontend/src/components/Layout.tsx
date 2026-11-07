@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import { useCarts } from "../cart";
+import Assistant from "./Assistant";
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -42,6 +43,7 @@ export default function Layout() {
       <main className="page">
         <Outlet />
       </main>
+      <Assistant />
     </>
   );
 }

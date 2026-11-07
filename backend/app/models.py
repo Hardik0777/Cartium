@@ -315,3 +315,15 @@ class OAuthIdentity(Base):
     subject: Mapped[str] = mapped_column(String(255))      # Google's user id; never changes, unlike email
     email: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow)
+
+
+# ---------------------------------------------------------------- AI assistant (Phase 7)
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    role: Mapped[str] = mapped_column(String(10))           # "user" or "assistant"
+    content: Mapped[str] = mapped_column(Text)
+    payload: Mapped[str] = mapped_column(Text, default="")  # JSON: product ids, order ids, suggested action
+    created_at: Mapped[datetime] = mapped_column(Timestamp, default=utcnow, index=True)

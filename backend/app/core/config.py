@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_jwks_url: str = "https://www.googleapis.com/oauth2/v3/certs"  # Google's public signing keys
 
+    # AI shopping assistant (Hugging Face Inference Providers, OpenAI-compatible chat API)
+    huggingface_api_key: str = ""
+    ai_model_name: str = "Qwen/Qwen2.5-7B-Instruct"
+    huggingface_chat_url: str = "https://router.huggingface.co/v1/chat/completions"
+    huggingface_timeout_seconds: int = 30
+    ai_index_dir: str = ".ai_index"   # where ChromaDB stores the assistant's search index
+
     # Razorpay (use TEST keys locally: they start with rzp_test_)
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""

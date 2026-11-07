@@ -38,6 +38,12 @@ def seed() -> None:
             print(f"  created  {u['email']}  ({u['role'].value})")
         db.commit()
         seed_catalog(db)
+        try:
+            from app.ai import index
+            built = index.rebuild(db)
+            print(f"  assistant index: {built['products']} products, {built['faqs']} FAQs, {built['policies']} policies")
+        except Exception as exc:  # e.g. offline: it's rebuilt automatically on the first question
+            print(f"  assistant index skipped ({type(exc).__name__}); it will build on first use")
     print("Seed complete.")
 
 
